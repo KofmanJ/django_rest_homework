@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework.generics import RetrieveAPIView, CreateAPIView, ListAPIView, DestroyAPIView, UpdateAPIView
 
 from tracker.models import Lesson
-from tracker.seriallizers.lesson import LessonSerializer
+from tracker.serializers.lesson import LessonSerializer
 
 
 class LessonCreateView(CreateAPIView):
