@@ -7,6 +7,7 @@ from tracker.serializers.lesson import LessonSerializer
 
 class CourseSerializer(serializers.ModelSerializer):
     lesson_count = serializers.SerializerMethodField()
+    # lesson = LessonSerializer(many=True, read_only=True, source='lessons')
     lessons = LessonSerializer(many=True, read_only=True)
     # lessons = serializers.SlugRelatedField(slug_field='name', many=True, queryset=Lesson.objects.all())
 
