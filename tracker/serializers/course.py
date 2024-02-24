@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from rest_framework.relations import SlugRelatedField
+# from rest_framework.relations import SlugRelatedField
 
-from tracker.models import Course, Lesson
+from tracker.models import Course
 from tracker.serializers.lesson import LessonSerializer
 
 
