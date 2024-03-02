@@ -36,8 +36,11 @@ class LessonDeleteView(DestroyAPIView):
 
 
 class LessonListView(ListAPIView):
-    queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, IsModerator | IsOwner]
 
-
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_moderator:
+            return Lesson.objects.all()
+        return Lesson.objects.filter(owner=user)

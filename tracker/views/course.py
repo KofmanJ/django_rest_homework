@@ -7,8 +7,12 @@ from users.permissions import IsModerator, IsOwner
 
 
 class CourseViewSet(ModelViewSet):
-    queryset = Course.objects.all()
     serializer_class = CourseSerializer
+
+    def get_queryset(self):
+        if self.request.user.is_moderator:
+            return Course.objects.all()
+        return Course.objects.filter(user=self.request.user)
 
     def perform_create(self, serializer):
         new_course = serializer.save()
