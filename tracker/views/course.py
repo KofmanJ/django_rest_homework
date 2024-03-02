@@ -10,9 +10,10 @@ class CourseViewSet(ModelViewSet):
     serializer_class = CourseSerializer
 
     def get_queryset(self):
-        if self.request.user.is_moderator:
+        user = self.request.user
+        if user.is_moderator:
             return Course.objects.all()
-        return Course.objects.filter(user=self.request.user)
+        return Course.objects.filter(owner=user)
 
     def perform_create(self, serializer):
         new_course = serializer.save()
