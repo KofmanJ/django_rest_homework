@@ -2,12 +2,14 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.viewsets import ModelViewSet
 
 from tracker.models import Course
+from tracker.paginations import CoursePagination
 from tracker.serializers.course import CourseSerializer
 from users.permissions import IsModerator, IsOwner
 
 
 class CourseViewSet(ModelViewSet):
     serializer_class = CourseSerializer
+    pagination_class = CoursePagination
 
     def get_queryset(self):
         user = self.request.user

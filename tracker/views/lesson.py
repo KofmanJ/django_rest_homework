@@ -2,6 +2,7 @@ from rest_framework.generics import RetrieveAPIView, CreateAPIView, ListAPIView,
 from rest_framework.permissions import IsAuthenticated
 
 from tracker.models import Lesson
+from tracker.paginations import LessonPagination
 from tracker.serializers.lesson import LessonSerializer
 from users.permissions import IsModerator, IsOwner
 
@@ -38,6 +39,7 @@ class LessonDeleteView(DestroyAPIView):
 class LessonListView(ListAPIView):
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated, IsModerator | IsOwner]
+    pagination_class = LessonPagination
 
     def get_queryset(self):
         user = self.request.user
