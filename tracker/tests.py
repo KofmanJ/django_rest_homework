@@ -39,7 +39,7 @@ class TrackerTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.get(
-            reverse('tracker:lesson_list')
+            reverse('lesson_list')
         )
 
         self.assertEquals(
@@ -47,41 +47,48 @@ class TrackerTestCase(APITestCase):
             status.HTTP_200_OK
         )
 
-        # self.assertEquals(
-        #     response.json(),
-        #     {
-        #         'count': 1,
-        #         'next': None,
-        #         'previous': None,
-        #         'results': [
-        #             {
-        #                 'id': self.lesson.id,
-        #                 'title': self.lesson.title,
-        #                 'preview': self.lesson.preview,
-        #                 'description': self.lesson.description,
-        #                 'video_link': self.lesson.video_link,
-        #                 'course': self.lesson.course,
-        #                 'owner': self.user.id
-        #             }
-        #         ]
-        #     }
-        # )
+        # print(response.json())
+
+        self.assertEquals(
+            response.json(),
+            {
+                'count': 1,
+                'next': None,
+                'previous': None,
+                'results': [
+                    {
+                        'id': self.lesson.id,
+                        'name': self.lesson.name,
+                        'preview': self.lesson.preview,
+                        'description': self.lesson.description,
+                        'video_link': self.lesson.video_link,
+                        'course': self.lesson.course.id,
+                        'user': self.lesson.user.id
+                    }
+                ]
+            }
+        )
 
     def test_create_lesson(self):
         """Тестирование создания урока"""
 
         data = {
-            "name": "test_lesson2",
-            "description": "test_lesson2",
-            "course": 1
+            "name": "Lesson_1",
+            # "preview": "placeholder_preview.png",
+            "description": "LessonDescription_1",
+            "video_link": "https://www.youtube.com/watch?v=yourvideoid",
+            "course": self.course.id,
+            "user": self.lesson.user.id
         }
 
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
-            reverse('tracker:lesson_create'),
+            reverse('lesson_create'),
             data=data
         )
+
+        # print(response.content)
 
         self.assertEquals(
             response.status_code,
@@ -89,19 +96,24 @@ class TrackerTestCase(APITestCase):
         )
 
     def test_update_lesson(self):
-        """Тестирование изменения информации об уроке"""
-        lesson = Lesson.objects.create(
-            name='Test_lesson',
-            description='Test_lesson',
-            user=self.user
-        )
+        """Тестирование обновления урока"""
+
+        updated_data = {
+            "name": "Updated Lesson Name",
+            "description": "Updated Lesson Description",
+            "video_link": "https://www.youtube.com/watch?v=yourvideoid",
+            "course": self.course.id,
+            "user": self.lesson.user.id
+        }
 
         self.client.force_authenticate(user=self.user)
 
-        response = self.client.patch(
-            f'/tracker/update/{lesson.id}/',
-            {'description': 'change'}
+        response = self.client.put(
+            reverse('lesson_update', kwargs={'pk': self.lesson.id}),
+            data=updated_data
         )
+
+        # print(response.content)
 
         self.assertEquals(
             response.status_code,
@@ -110,16 +122,10 @@ class TrackerTestCase(APITestCase):
 
     def test_delete_lesson(self):
         """Тестирование удаления урока"""
-        lesson = Lesson.objects.create(
-            name='Test_lesson',
-            description='Test_lesson',
-            user=self.user
-        )
-
         self.client.force_authenticate(user=self.user)
 
         response = self.client.delete(
-            f'/tracker/delete/{lesson.id}/'
+            reverse('lesson_delete', kwargs={'pk': self.lesson.id}),
         )
 
         self.assertEquals(
@@ -132,20 +138,24 @@ class SubscriptionTestCase(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create(
+            id=1,
             email="user_test@mail.ru",
             phone="1357986420",
             city="Moscow",
         )
-
         self.course = Course.objects.create(
+            id=2,
             name="Course_1",
             description="CourseDescription_1",
             user=self.user
         )
 
         self.client.force_authenticate(user=self.user)
+        self.user.status = False
+
 
     def test_subscribe_to_course(self):
+        """Тестирование подписки на курс"""
 
         data = {
             "user": self.user.id,
@@ -155,7 +165,7 @@ class SubscriptionTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
-            reverse('tracker:subscription'),
+            reverse('subscription'),
             data=data
         )
 
@@ -168,3 +178,50 @@ class SubscriptionTestCase(APITestCase):
             response.json(),
             {'message': 'Вы подписались на обновления курса'}
         )
+
+        self.user.status = True
+        self.user.save()
+
+    def test_unsubscribe_from_course(self):
+        """Тестирование отписки от курса"""
+        data = {
+            "user": self.user.id,
+            "course": self.course.id,
+        }
+
+        # Подписываем пользователя на курс
+        response_subscribe = self.client.post(
+            reverse('subscription'),
+            data=data
+        )
+        self.assertEquals(
+            response_subscribe.status_code,
+            status.HTTP_200_OK
+        )
+        self.assertEquals(
+            response_subscribe.json(),
+            {'message': 'Вы подписались на обновления курса'}
+        )
+
+        self.user.status = True
+        self.user.save()
+
+        # Отписываем пользователя от курса
+        response_unsubscribe = self.client.post(
+            reverse('subscription'),
+            data=data
+        )
+        self.assertEquals(
+            response_unsubscribe.status_code,
+            status.HTTP_200_OK
+        )
+        self.assertEquals(
+            response_unsubscribe.json(),
+            {'message': 'Вы отписались от обновления курса'}
+        )
+
+        self.user.status = False
+        self.user.save()
+
+        self.user.refresh_from_db()  # Обновляем данные пользователя из базы
+        self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())

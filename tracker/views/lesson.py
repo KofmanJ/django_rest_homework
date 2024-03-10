@@ -43,6 +43,6 @@ class LessonListView(ListAPIView):
 
     def get_queryset(self):
         user = self.request.user
-        if user.is_moderator:
+        if user.groups.filter(name='Moderator').exists():
             return Lesson.objects.all()
-        return Lesson.objects.filter(owner=user)
+        return Lesson.objects.filter(user=user)
