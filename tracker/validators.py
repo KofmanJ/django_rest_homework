@@ -1,3 +1,5 @@
+from rest_framework.exceptions import ValidationError
+
 
 class UrlValidator:
 
@@ -7,4 +9,4 @@ class UrlValidator:
     def __call__(self, value):
         url = value.get(self.field)
         if url and not url.startswith('https://www.youtube.com/'):
-            raise ValueError('Ссылки на сторонние видео запрещены')
+            raise ValidationError('Ссылки на сторонние видео запрещены')
