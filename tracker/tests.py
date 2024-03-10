@@ -74,7 +74,6 @@ class TrackerTestCase(APITestCase):
 
         data = {
             "name": "Lesson_1",
-            # "preview": "placeholder_preview.png",
             "description": "LessonDescription_1",
             "video_link": "https://www.youtube.com/watch?v=yourvideoid",
             "course": self.course.id,
@@ -150,14 +149,13 @@ class SubscriptionTestCase(APITestCase):
             user=self.user
         )
 
-        self.client.force_authenticate(user=self.user)
+        # self.client.force_authenticate(user=self.user)
         self.user.status = False
 
     def test_subscribe_to_course(self):
         """Тестирование подписки на курс"""
 
         data = {
-            "user": self.user.id,
             "course": self.course.id,
         }
 
@@ -178,49 +176,88 @@ class SubscriptionTestCase(APITestCase):
             {'message': 'Вы подписались на обновления курса'}
         )
 
-        self.user.status = True
-        self.user.save()
+        # self.user.status = True
+        # self.user.save()
 
-    def test_unsubscribe_from_course(self):
-        """Тестирование отписки от курса"""
+    def test_subscribe_to_course_unauthorized(self):
+        """Тестирование подписки на курс для неавторизованного пользователя"""
+
         data = {
-            "user": self.user.id,
             "course": self.course.id,
         }
 
-        # Подписываем пользователя на курс
+        response = self.client.post(
+            reverse('subscription'),
+            data=data
+        )
+
+        self.assertEquals(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED
+        )
+
+        self.assertEquals(
+            response.json(),
+            {'detail': 'Учетные данные не были предоставлены.'}
+        )
+
+    def test_unsubscribe_from_course(self):
+        """Тестирование отписки от курса"""
+
+        subscription = Subscription.objects.create(
+            course=self.course,
+            user=self.user,
+            status=True
+        )
+
+        subscription.refresh_from_db()
+
+        data = {
+            "course": self.course.id,
+        }
+
+        self.client.force_authenticate(user=self.user)
+
         response_subscribe = self.client.post(
             reverse('subscription'),
             data=data
         )
+
         self.assertEquals(
             response_subscribe.status_code,
             status.HTTP_200_OK
         )
+
         self.assertEquals(
             response_subscribe.json(),
-            {'message': 'Вы подписались на обновления курса'}
-        )
-
-        self.user.status = True
-        self.user.save()
-
-        # Отписываем пользователя от курса
-        response_unsubscribe = self.client.post(
-            reverse('subscription'),
-            data=data
-        )
-        self.assertEquals(
-            response_unsubscribe.status_code,
-            status.HTTP_200_OK
-        )
-        self.assertEquals(
-            response_unsubscribe.json(),
             {'message': 'Вы отписались от обновления курса'}
         )
 
-        self.user.status = False
-        self.user.save()
-
         self.user.refresh_from_db()  # Обновляем данные пользователя из базы
         self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())
+
+    def test_subscribe_to_not_existing_course(self):
+        """Тестирование подписки на несуществующий курс"""
+
+        not_existing_course = 8899
+
+        data = {
+            "course": not_existing_course,
+        }
+
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse('subscription'),
+            data=data
+        )
+
+        self.assertEquals(
+            response.status_code,
+            status.HTTP_404_NOT_FOUND
+        )
+
+        self.assertEquals(
+            response.json(),
+            {'detail': 'Страница не найдена.'}
+        )
