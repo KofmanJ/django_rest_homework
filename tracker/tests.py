@@ -11,19 +11,14 @@ class TrackerTestCase(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create(
-            id=1,
             email="user_test@mail.ru",
-            phone="1357986420",
-            city="Moscow",
         )
         self.course = Course.objects.create(
-            id=2,
             name="Course_1",
             description="CourseDescription_1",
             user=self.user
         )
         self.lesson = Lesson.objects.create(
-            id=3,
             name="Lesson_1",
             description="LessonDescription_1",
             video_link="test.youtube.com",
@@ -73,8 +68,9 @@ class TrackerTestCase(APITestCase):
         """Тестирование создания урока"""
 
         data = {
-            "name": "Lesson_1",
-            "description": "LessonDescription_1",
+            "name": "Lesson_2",
+            # "preview": "placeholder_preview.png",
+            "description": "LessonDescription_2",
             "video_link": "https://www.youtube.com/watch?v=yourvideoid",
             "course": self.course.id,
             "user": self.lesson.user.id
@@ -87,12 +83,13 @@ class TrackerTestCase(APITestCase):
             data=data
         )
 
-        # print(response.content)
+        # print(response.json())
 
         self.assertEquals(
             response.status_code,
             status.HTTP_201_CREATED
         )
+        # print(response.json())
 
     def test_update_lesson(self):
         """Тестирование обновления урока"""
@@ -132,25 +129,35 @@ class TrackerTestCase(APITestCase):
             status.HTTP_204_NO_CONTENT
         )
 
+    def test_subscription_flag_for_retrieving_on_not_subscribed_user(self):
+        Subscription.objects.all().delete()
+        url = reverse('course-detail', kwargs={'pk': self.course.pk})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.json()['is_subscribed'])
+
+    def test_subscription_flag_for_retrieving_on_subscribed_user(self):
+        Subscription.objects.create(course=self.course, user=self.user)
+        url = reverse('course-detail', kwargs={'pk': self.course.pk})
+
+        response = self.client.get(url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertTrue(response.json()['is_subscribed'])
+
 
 class SubscriptionTestCase(APITestCase):
 
     def setUp(self):
         self.user = User.objects.create(
-            id=1,
-            email="user_test@mail.ru",
-            phone="1357986420",
-            city="Moscow",
+            email="user_test@mail.ru"
         )
         self.course = Course.objects.create(
-            id=2,
             name="Course_1",
-            description="CourseDescription_1",
-            user=self.user
+            description="CourseDescription_1"
         )
-
-        # self.client.force_authenticate(user=self.user)
-        self.user.status = False
 
     def test_subscribe_to_course(self):
         """Тестирование подписки на курс"""
@@ -162,7 +169,7 @@ class SubscriptionTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
-            reverse('subscription'),
+            reverse('subscription', kwargs={'pk': self.course.id}),
             data=data
         )
 
@@ -176,38 +183,12 @@ class SubscriptionTestCase(APITestCase):
             {'message': 'Вы подписались на обновления курса'}
         )
 
-        # self.user.status = True
-        # self.user.save()
-
-    def test_subscribe_to_course_unauthorized(self):
-        """Тестирование подписки на курс для неавторизованного пользователя"""
-
-        data = {
-            "course": self.course.id,
-        }
-
-        response = self.client.post(
-            reverse('subscription'),
-            data=data
-        )
-
-        self.assertEquals(
-            response.status_code,
-            status.HTTP_401_UNAUTHORIZED
-        )
-
-        self.assertEquals(
-            response.json(),
-            {'detail': 'Учетные данные не были предоставлены.'}
-        )
-
     def test_unsubscribe_from_course(self):
         """Тестирование отписки от курса"""
 
         subscription = Subscription.objects.create(
             course=self.course,
             user=self.user,
-            status=True
         )
 
         subscription.refresh_from_db()
@@ -219,7 +200,7 @@ class SubscriptionTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response_subscribe = self.client.post(
-            reverse('subscription'),
+            reverse('subscription', kwargs={'pk': subscription.id}),
             data=data
         )
 
@@ -236,10 +217,32 @@ class SubscriptionTestCase(APITestCase):
         self.user.refresh_from_db()  # Обновляем данные пользователя из базы
         self.assertFalse(Subscription.objects.filter(user=self.user, course=self.course).exists())
 
+    def test_subscribe_to_course_unauthorized(self):
+        """Тестирование подписки на курс для неавторизованного пользователя"""
+
+        data = {
+            "course": self.course.id,
+        }
+
+        response = self.client.post(
+            reverse('subscription', kwargs={'pk': self.course.id}),
+            data=data
+        )
+
+        self.assertEquals(
+            response.status_code,
+            status.HTTP_401_UNAUTHORIZED
+        )
+
+        self.assertEquals(
+            response.json(),
+            {'detail': 'Учетные данные не были предоставлены.'}
+        )
+
     def test_subscribe_to_not_existing_course(self):
         """Тестирование подписки на несуществующий курс"""
 
-        not_existing_course = 8899
+        not_existing_course = 8998
 
         data = {
             "course": not_existing_course,
@@ -248,7 +251,7 @@ class SubscriptionTestCase(APITestCase):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
-            reverse('subscription'),
+            reverse('subscription', kwargs={'pk': not_existing_course}),
             data=data
         )
 

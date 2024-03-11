@@ -12,7 +12,7 @@ urlpatterns = [
     path('create/', LessonCreateView.as_view(), name='lesson_create'),
     path('update/<int:pk>/', LessonUpdateView.as_view(), name='lesson_update'),
     path('delete/<int:pk>/', LessonDeleteView.as_view(), name='lesson_delete'),
-    path('subscription/', SubscribeAPIView.as_view(), name='subscription'),
+    path('subscription/<int:pk>/', SubscribeAPIView.as_view(), name='subscription'),
 ]
 
 router = routers.SimpleRouter()
