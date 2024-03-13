@@ -2,7 +2,7 @@ from os import path
 from django.urls import path
 from rest_framework import routers
 
-from tracker.views.course import CourseViewSet
+from tracker.views.course import CourseViewSet, CoursePaymentAPIView
 from tracker.views.lesson import LessonListView, LessonDetailView, LessonCreateView, LessonUpdateView, LessonDeleteView
 from tracker.views.subscriptions import SubscribeAPIView
 
@@ -13,6 +13,7 @@ urlpatterns = [
     path('update/<int:pk>/', LessonUpdateView.as_view(), name='lesson_update'),
     path('delete/<int:pk>/', LessonDeleteView.as_view(), name='lesson_delete'),
     path('subscription/<int:pk>/', SubscribeAPIView.as_view(), name='subscription'),
+    path('course/payment/', CoursePaymentAPIView.as_view(), name='course_payment'),
 ]
 
 router = routers.SimpleRouter()

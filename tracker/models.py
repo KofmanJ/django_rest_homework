@@ -9,6 +9,7 @@ class Course(models.Model):
     preview = models.ImageField(upload_to='tracker/', verbose_name='Превью курса', **NULLABLE)
     description = models.TextField(verbose_name='Описание курса')
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, **NULLABLE, verbose_name='Пользователь')
+    price = models.PositiveIntegerField(default=10000, verbose_name='Цена курса')
 
     def __str__(self):
         return self.name
