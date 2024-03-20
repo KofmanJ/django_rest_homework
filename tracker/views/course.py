@@ -11,6 +11,7 @@ from tracker.utils import get_url_for_payment
 from users.models import Payment
 from users.permissions import IsModerator, IsOwner
 from users.serializers.payment import PaymentSerializer
+from tracker.tasks import send_email_update_course
 
 
 class CourseViewSet(ModelViewSet):
@@ -36,6 +37,12 @@ class CourseViewSet(ModelViewSet):
         elif self.action == 'destroy':
             self.permission_classes = [IsAuthenticated, IsOwner]
         return [permission() for permission in self.permission_classes]
+
+    def perform_update(self, serializer):
+        updated_course = serializer.save()
+        instance = serializer.instance
+        send_email_update_course.delay(instance)
+        updated_course.save()
 
 
 class CoursePaymentAPIView(APIView):
